@@ -2,32 +2,12 @@ import React, { useState, useRef, useLayoutEffect, useEffect } from 'react';
 
 const POPUP_WIDTH      = 620; //   popup width from popup.html
 const INNER_MAX_WIDTH  = 560;
-/* Promote "### Achievements/Experience" → **Achievements/Experience** */
+/* Promote “### Achievements/Experience” → **Achievements/Experience** */
 const format = (s) =>
   (s || '').replace(
     /###\s*(Achievements\/Experience|Icebreaker Questions)/g,
     (_, h) => `**${h}**`,
   );
-
-function reorderSections(summary) {
-  // Split into sections by headers
-  const lines = summary.split('\n');
-  let icebreakerStart = -1, achieveStart = -1;
-  for (let i = 0; i < lines.length; ++i) {
-    if (lines[i].includes('**Icebreaker Questions**')) icebreakerStart = i;
-    if (lines[i].includes('**Achievements/Experience**')) achieveStart = i;
-  }
-  if (icebreakerStart === -1 || achieveStart === -1) return summary;
-  // Find section ends
-  const icebreakerEnd = achieveStart > icebreakerStart ? achieveStart : lines.length;
-  const achieveEnd = achieveStart > icebreakerStart ? lines.length : icebreakerStart;
-  const icebreakerSection = lines.slice(icebreakerStart, icebreakerEnd);
-  const achieveSection = lines.slice(achieveStart, achieveEnd);
-  const before = lines.slice(0, Math.min(icebreakerStart, achieveStart));
-  const after = lines.slice(Math.max(icebreakerEnd, achieveEnd));
-  // Reorder: before + icebreaker + achieve + after
-  return [...before, ...icebreakerSection, ...achieveSection, ...after].join('\n');
-}
 
 function PopupApp() {
   /* ───────── state & refs ───────── */
@@ -93,8 +73,7 @@ function PopupApp() {
           });
           const d = await r.json();
           setLoading(false);
-          // Reorder sections before rendering
-          setResult(reorderSections(format(d.summary || '')));
+          setResult(format(d.summary || ''));
         } catch {
           setLoading(false);
           setError('Backend unreachable.');

@@ -26,8 +26,8 @@ Data:
 ${JSON.stringify(profile, null, 2)}
 
 Return exactly:
-- 5 bullet achievements/experince 
 - 3 bullet icebreaker questions
+- 5 bullet achievements/experince 
 `;
 
   try {
