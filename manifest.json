@@ -1,0 +1,37 @@
+{
+    "manifest_version": 3,
+    "name": "LinkedIn Profile Summarizer",
+    "version": "1.0.0",
+    "description": "Scrape LinkedIn profiles, summarize key info, and generate ice-breaker questions.",
+  
+    "action": {
+      "default_title": "Summarize LinkedIn profile",
+      "default_popup": "src/popup.html"
+    },
+  
+    "background": {
+      "service_worker": "src/background.js",
+      "type": "module"          // ‼️ <-- lets you use ES-modules (`export {}`)
+    },
+  
+    "permissions": [
+      "activeTab",
+      "tabs",                   // ‼️ needed for chrome.tabs.query in popup.js
+      "scripting",
+      "storage"                 // optional now, but handy if you cache anything later
+    ],
+  
+    "host_permissions": [
+      "https://*.linkedin.com/*", // wildcard so it works on any LinkedIn sub-domain
+      "http://localhost:3001/"
+    ],
+  
+    "content_scripts": [
+      {
+        "matches": ["https://*.linkedin.com/*"],
+        "js": ["src/content.js"],
+        "run_at": "document_idle" // waits until the DOM is ready
+      }
+    ]
+  }
+  

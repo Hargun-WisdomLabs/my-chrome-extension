@@ -1,0 +1,16 @@
+body {
+  font-family: Arial, sans-serif;
+  width: 320px;
+  margin: 0;
+  padding: 16px;
+}
+button {
+  width: 100%;
+  padding: 10px;
+  font-size: 16px;
+  margin-bottom: 12px;
+}
+#result {
+  white-space: pre-wrap;
+  font-size: 14px;
+} 

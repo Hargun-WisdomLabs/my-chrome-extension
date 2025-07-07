@@ -34,3 +34,43 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+# LinkedIn Profile Summarizer Chrome Extension
+
+## Features
+- Scrapes LinkedIn profile data (education, experience, patents, activities, etc.)
+- Sends data to a local Node.js backend
+- Backend uses OpenAI API to summarize and generate icebreaker questions
+- Results are shown in the extension popup
+
+## Setup
+
+### 1. Backend (Node.js)
+1. Go to the `backend` directory:
+   ```sh
+   cd backend
+   ```
+2. Install dependencies:
+   ```sh
+   npm install
+   ```
+3. Add your OpenAI API key to `.env`:
+   ```env
+   OPENAI_API_KEY=your_openai_api_key_here
+   ```
+4. Start the backend server:
+   ```sh
+   node server.js
+   ```
+   The backend will run on `http://localhost:3001`.
+
+### 2. Chrome Extension
+1. In Chrome, go to `chrome://extensions` and enable Developer Mode.
+2. Click "Load unpacked" and select the root directory of this project.
+3. Make sure you are on a LinkedIn profile page (URL like `https://www.linkedin.com/in/...`).
+4. Click the extension icon and press the button to scrape and summarize the profile.
+
+## Notes
+- The backend must be running locally for the extension to work.
+- The extension only works on LinkedIn profile pages.
+- For best results, use a valid OpenAI API key with GPT-4 access.
