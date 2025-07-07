@@ -110,21 +110,6 @@ function clean(str) {
   return str.replace(/\s+/g, ' ').trim();
 }
 
-function observeName(timeout) {
-  return new Promise(resolve => {
-    const obs = new MutationObserver(() => {
-      const n = findName();
-      if (n) {
-        obs.disconnect();
-        resolve(n);
-      }
-    });
-    obs.observe(document.body, { childList: true, subtree: true });
-
-    setTimeout(() => { obs.disconnect(); resolve(''); }, timeout);
-  });
-}
-
 /* ------------------------------------------------------------------ */
 /* Build the full profile object                                      */
 /* ------------------------------------------------------------------ */
@@ -146,21 +131,4 @@ function liTexts(section) {
         .map(li => clean(li.innerText))
         .filter(Boolean)
     : [];
-}
-
-function buildProfile(name) {
-  return {
-    success: true,
-    name,
-    headline:   txt('.text-body-medium.break-words'),
-    location:   txt('.text-body-small.inline.t-black--light.break-words'),
-    experience: liTexts(sectionByAria('experience')),
-    education:  liTexts(sectionByAria('education')),
-    patents:    Array.from(document.querySelectorAll('a'))
-                .filter(a => /patent/i.test(a.innerText) || /patent/i.test(a.href))
-                .map(a   => clean(a.innerText)),
-    activities: Array.from(document.querySelectorAll('a'))
-                .filter(a => /activity/i.test(a.innerText) || /activity/i.test(a.href))
-                .map(a   => clean(a.innerText))
-  };
 }

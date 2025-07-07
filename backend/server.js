@@ -44,6 +44,35 @@ Return exactly:
   }
 });
 
+app.post('/chat', async (req, res) => {
+  const { profile, question } = req.body;
+  if (!profile || profile.success === false || !question) {
+    return res.status(400).json({ error: 'Bad request payload.' });
+  }
+
+  const prompt = `You are a helpful assistant answering questions about a LinkedIn profile.
+
+Profile Data:
+${JSON.stringify(profile, null, 2)}
+
+Question: ${question}
+
+Please answer the question based on the profile data provided. Be conversational and helpful. If the information isn't available in the profile data, say so politely.`;
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 500
+    });
+
+    res.json({ answer: completion.choices[0].message.content.trim() });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'OpenAI call failed.' });
+  }
+});
+
 app.listen(port, () =>
   console.log(`✅ Backend listening on http://localhost:${port}`)
 );
