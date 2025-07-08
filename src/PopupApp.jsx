@@ -19,6 +19,7 @@ function PopupApp() {
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
+  const [useWebSearch, setUseWebSearch] = useState(false);
 
   const rootRef = useRef(null);
   const boxRef  = useRef(null);
@@ -107,7 +108,7 @@ function PopupApp() {
       const response = await fetch('http://localhost:3001/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ profile, question }),
+        body: JSON.stringify({ profile, question, useWebSearch }),
       });
       const data = await response.json();
       
@@ -144,7 +145,9 @@ function PopupApp() {
         top: 0,
         right: 0,
         height: '95vh',
-        width: 400,
+        width: POPUP_WIDTH,
+        minWidth: POPUP_WIDTH,
+        maxWidth: POPUP_WIDTH,
         minHeight: '95vh',
         maxHeight: '95vh',
         zIndex: 9999,
@@ -204,26 +207,55 @@ function PopupApp() {
           marginTop: 8,
           gap: 0,
         }}>
-          <input
-            ref={chatInputRef}
-            type="text"
-            value={chatInput}
-            onChange={(e) => setChatInput(e.target.value)}
-            placeholder={profile ? `Ask about ${profile.name}...` : 'Profile not loaded yet'}
-            disabled={chatLoading || !profile}
-            style={{
-              width: '100%',
-              padding: '12px 16px',
-              border: '2px solid #0073b1',
-              borderRadius: '14px',
-              fontSize: 15,
-              outline: 'none',
-              color: chatInput ? '#333' : '#999',
-              background: !profile ? '#f3f3f3' : '#fff',
-              boxSizing: 'border-box',
-              marginBottom: 8,
-            }}
-          />
+          <div style={{
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            marginBottom: 8,
+          }}>
+            <input
+              ref={chatInputRef}
+              type="text"
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              placeholder={profile ? `Ask about ${profile.name}...` : 'Profile not loaded yet'}
+              disabled={chatLoading || !profile}
+              style={{
+                flex: 1,
+                padding: '12px 16px',
+                border: '2px solid #0073b1',
+                borderRadius: '14px',
+                fontSize: 15,
+                outline: 'none',
+                color: chatInput ? '#333' : '#999',
+                background: !profile ? '#f3f3f3' : '#fff',
+                boxSizing: 'border-box',
+              }}
+            />
+            <label style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              fontSize: 12,
+              color: '#0073b1',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+            }}>
+              <input
+                type="checkbox"
+                checked={useWebSearch}
+                onChange={(e) => setUseWebSearch(e.target.checked)}
+                disabled={chatLoading || !profile}
+                style={{
+                  width: 14,
+                  height: 14,
+                  cursor: 'pointer',
+                }}
+              />
+              Web Search
+            </label>
+          </div>
           <button
             type="submit"
             disabled={!chatInput.trim() || chatLoading || !profile}

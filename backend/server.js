@@ -26,13 +26,13 @@ Data:
 ${JSON.stringify(profile, null, 2)}
 
 Return exactly:
-- 3 bullet icebreaker questions
-- 5 bullet achievements/experince 
+- 3 bullet icebreaker questions (Bold this as a header)
+- 5 bullet achievements/experince (Bold this as a header)
 `;
 
   try {
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: 'gpt-4.1',
       messages: [{ role: 'user', content: prompt }],
       max_tokens: 300
     });
@@ -45,7 +45,7 @@ Return exactly:
 });
 
 app.post('/chat', async (req, res) => {
-  const { profile, question } = req.body;
+  const { profile, question, useWebSearch } = req.body;
   if (!profile || profile.success === false || !question) {
     return res.status(400).json({ error: 'Bad request payload.' });
   }
@@ -60,13 +60,29 @@ Question: ${question}
 Please answer the question based on the profile data provided. Be conversational and helpful. If the information isn't available in the profile data, say so politely.`;
 
   try {
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [{ role: 'user', content: prompt }],
-      max_tokens: 500
-    });
-
-    res.json({ answer: completion.choices[0].message.content.trim() });
+    let completion;
+    
+    if (useWebSearch) {
+      // Use web search functionality
+      const response = await openai.responses.create({
+        model: 'gpt-4.1',
+        tools: [{ type: 'web_search_preview' }],
+        input: `Profile Data: ${JSON.stringify(profile, null, 2)}\n\nQuestion: ${question}\n\nPlease answer the question based on the profile data provided. If the information isn't available in the profile data, use web search to find relevant information. Be conversational and helpful.`,
+      });
+      
+      // Extract the answer from the response
+      const answer = response.output_text || 'No answer generated.';
+      res.json({ answer });
+    } else {
+      // Use regular chat completion
+      completion = await openai.chat.completions.create({
+        model: 'gpt-4.1',
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 500
+      });
+      
+      res.json({ answer: completion.choices[0].message.content.trim() });
+    }
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'OpenAI call failed.' });
