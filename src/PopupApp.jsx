@@ -140,18 +140,26 @@ function PopupApp() {
     <div
       ref={rootRef}
       style={{
-        width: POPUP_WIDTH,
-        minHeight: h,
-        maxHeight: 600,
-        padding: open ? 24 : 16,
+        position: 'fixed',
+        top: 0,
+        right: 0,
+        height: '95vh',
+        width: 400,
+        minHeight: '95vh',
+        maxHeight: '95vh',
+        zIndex: 9999,
+        paddingLeft: 24,
+        paddingRight: 24,
+        paddingTop: 0,
+        paddingBottom: 0,
         boxSizing: 'border-box',
         fontFamily: 'Arial, sans-serif',
-        transition: 'width .25s ease, height .25s ease',
-        overflow: 'hidden',
         background: '#fff',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
+        boxShadow: '-4px 0 16px rgba(0,0,0,0.10)',
+        overflowY: 'auto',
       }}
     >
       {/* summary box */}
@@ -166,9 +174,6 @@ function PopupApp() {
           whiteSpace: 'pre-wrap',
           wordBreak: 'break-word',
           boxSizing: 'border-box',
-          maxWidth: '100%',
-          overflowY: 'auto',
-          maxHeight: 420,
           fontSize: 17,
           width: '100%',
         }}

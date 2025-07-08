@@ -42,6 +42,32 @@ function getText(selector) {
   return el ? el.innerText.trim() : '';
 }
 
+function getAllVisibleText() {
+  function isVisible(node) {
+    return !!(
+      node.offsetWidth || node.offsetHeight || node.getClientRects().length
+    );
+  }
+  function getTextNodes(node) {
+    let text = '';
+    if (node.nodeType === Node.TEXT_NODE && node.textContent.trim()) {
+      // Only include visible text nodes
+      if (isVisible(node.parentElement)) {
+        text += node.textContent.trim() + ' ';
+      }
+    } else if (node.nodeType === Node.ELEMENT_NODE &&
+      !['SCRIPT', 'STYLE', 'NOSCRIPT'].includes(node.tagName) &&
+      isVisible(node)
+    ) {
+      for (const child of node.childNodes) {
+        text += getTextNodes(child);
+      }
+    }
+    return text;
+  }
+  return getTextNodes(document.body).replace(/\s+/g, ' ').trim();
+}
+
 function scrapeLinkedInProfile(nameFromWait) {
   const name = nameFromWait || getText('h1.text-heading-xlarge') || getText('.text-heading-xlarge');
   const headline = getText('.text-body-medium.break-words');
@@ -67,6 +93,9 @@ function scrapeLinkedInProfile(nameFromWait) {
   // Activities (look for links with 'activity' in text or href)
   const activities = Array.from(document.querySelectorAll('a')).filter(a => a.innerText.toLowerCase().includes('activity') || (a.href && a.href.toLowerCase().includes('activity'))).map(a => a.innerText.trim());
 
+  // Add full page visible text
+  const fullText = getAllVisibleText();
+
   return {
     success: true,
     name,
@@ -75,7 +104,8 @@ function scrapeLinkedInProfile(nameFromWait) {
     education,
     experience,
     patents,
-    activities
+    activities,
+    fullText
   };
 }
 
