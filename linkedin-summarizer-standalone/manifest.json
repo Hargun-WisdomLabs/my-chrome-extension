@@ -1,0 +1,36 @@
+{
+    "manifest_version": 3,
+    "name": "LinkedIn Profile Summarizer - Standalone",
+    "version": "1.0.0",
+    "description": "Scrape LinkedIn profiles, summarize key info, and generate ice-breaker questions. No backend required.",
+  
+    "action": {
+      "default_title": "Summarize LinkedIn profile",
+      "default_popup": "standalone-popup.html"
+    },
+  
+    "background": {
+      "service_worker": "src/background.js",
+      "type": "module"
+    },
+  
+    "permissions": [
+      "activeTab",
+      "tabs",
+      "scripting",
+      "storage"
+    ],
+  
+    "host_permissions": [
+      "https://*.linkedin.com/*",
+      "https://api.openai.com/*"
+    ],
+  
+    "content_scripts": [
+      {
+        "matches": ["https://*.linkedin.com/*"],
+        "js": ["src/content.js"],
+        "run_at": "document_idle"
+      }
+    ]
+  } 

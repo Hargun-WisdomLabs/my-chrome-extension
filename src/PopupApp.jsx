@@ -125,16 +125,63 @@ function PopupApp() {
   };
 
   /* ───────── render helpers ───────── */
-  const render = (txt) =>
-    txt.split('\n').map((ln, i) =>
-      /^\*\*(.+)\*\*$/.test(ln) ? (
-        <div key={i} style={{ fontWeight: 700, textAlign: 'center', margin: '14px 0 6px' }}>
-          {ln.replace(/^\*\*|\*\*$/g, '')}
-        </div>
-      ) : (
-        <div key={i}>{ln}</div>
-      )
-    );
+  const render = (txt) => {
+    const lines = txt.split('\n');
+    const elements = [];
+    let bullets = [];
+    let currentSection = null;
+    const flushBullets = (key) => {
+      if (!bullets.length) return;
+      if (currentSection === 'Icebreaker Questions') {
+        elements.push(
+          <ol key={`ol-${key}`} style={{ margin: '0 0 12px 18px', padding: 0 }}>
+            {bullets.map((b, j) => (
+              <li key={j} style={{ marginBottom: 2 }}>{b}</li>
+            ))}
+          </ol>
+        );
+      } else if (currentSection === 'Achievements/Experience') {
+        elements.push(
+          <ul key={`ul-${key}`} style={{ margin: '0 0 12px 18px', padding: 0 }}>
+            {bullets.map((b, j) => (
+              <li key={j} style={{ marginBottom: 2 }}>{b}</li>
+            ))}
+          </ul>
+        );
+      } else {
+        // fallback
+        elements.push(
+          <ul key={`ul-${key}`} style={{ margin: '0 0 12px 18px', padding: 0 }}>
+            {bullets.map((b, j) => (
+              <li key={j} style={{ marginBottom: 2 }}>{b}</li>
+            ))}
+          </ul>
+        );
+      }
+      bullets = [];
+    };
+    lines.forEach((ln, i) => {
+      const headerMatch = ln.match(/^\*\*(.+)\*\*$/);
+      if (headerMatch) {
+        flushBullets(i);
+        currentSection = headerMatch[1].trim();
+        elements.push(
+          <div key={i} style={{ fontWeight: 700, textAlign: 'left', margin: '14px 0 6px' }}>
+            {currentSection}
+          </div>
+        );
+      } else if (/^- /.test(ln)) {
+        bullets.push(ln.replace(/^- /, ''));
+      } else if (ln.trim() === '') {
+        // skip empty lines
+      } else {
+        flushBullets(i);
+        elements.push(<div key={i}>{ln}</div>);
+      }
+    });
+    flushBullets('last');
+    return elements;
+  };
 
   /* ───────── JSX ───────── */
   return (
@@ -214,25 +261,67 @@ function PopupApp() {
             gap: 8,
             marginBottom: 8,
           }}>
-            <input
-              ref={chatInputRef}
-              type="text"
-              value={chatInput}
-              onChange={(e) => setChatInput(e.target.value)}
-              placeholder={profile ? `Ask about ${profile.name}...` : 'Profile not loaded yet'}
-              disabled={chatLoading || !profile}
-              style={{
-                flex: 1,
-                padding: '12px 16px',
-                border: '2px solid #0073b1',
-                borderRadius: '14px',
-                fontSize: 15,
-                outline: 'none',
-                color: chatInput ? '#333' : '#999',
-                background: !profile ? '#f3f3f3' : '#fff',
-                boxSizing: 'border-box',
-              }}
-            />
+            <div style={{
+              position: 'relative',
+              flex: 1,
+              display: 'flex',
+              alignItems: 'center',
+            }}>
+              <input
+                ref={chatInputRef}
+                type="text"
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                placeholder={profile ? `Ask about ${profile.name}...` : 'Profile not loaded yet'}
+                disabled={chatLoading || !profile}
+                style={{
+                  width: '100%',
+                  padding: '12px 48px 12px 16px', // right padding for button
+                  border: '2px solid #0073b1',
+                  borderRadius: '14px',
+                  fontSize: 15,
+                  outline: 'none',
+                  color: chatInput ? '#333' : '#999',
+                  background: !profile ? '#f3f3f3' : '#fff',
+                  boxSizing: 'border-box',
+                  transition: 'border 0.2s',
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    if (chatInput.trim() && !chatLoading && profile) handleChatSubmit(e);
+                  }
+                }}
+              />
+              <button
+                type="submit"
+                disabled={!chatInput.trim() || chatLoading || !profile}
+                style={{
+                  position: 'absolute',
+                  right: 8,
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  width: 36,
+                  height: 36,
+                  borderRadius: '50%',
+                  background: chatInput.trim() && !chatLoading && profile ? '#4338ca' : '#ccc',
+                  border: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: chatInput.trim() && !chatLoading && profile ? 'pointer' : 'not-allowed',
+                  boxShadow: 'none',
+                  padding: 0,
+                  zIndex: 2,
+                }}
+                tabIndex={-1}
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="12" cy="12" r="12" fill="none"/>
+                  <path d="M12 6v12M12 6l-5 5M12 6l5 5" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+            </div>
             <label style={{
               display: 'flex',
               alignItems: 'center',
@@ -256,24 +345,7 @@ function PopupApp() {
               Web Search
             </label>
           </div>
-          <button
-            type="submit"
-            disabled={!chatInput.trim() || chatLoading || !profile}
-            style={{
-              width: '100%',
-              padding: '12px 24px',
-              background: chatInput.trim() && !chatLoading && profile ? '#0073b1' : '#ccc',
-              color: '#fff',
-              border: '2px solid #0073b1',
-              borderRadius: '14px',
-              cursor: chatInput.trim() && !chatLoading && profile ? 'pointer' : 'not-allowed',
-              fontSize: 15,
-              fontWeight: 500,
-              height: '48px',
-            }}
-          >
-            Ask
-          </button>
+          {/* Removed the old Ask button */}
         </form>
         {/* Answer or loading below the Ask button */}
         <div style={{ width: '100%', maxWidth: POPUP_WIDTH, marginTop: 12, boxSizing: 'border-box', alignSelf: 'center' }}>
