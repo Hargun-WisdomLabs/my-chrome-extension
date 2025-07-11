@@ -210,13 +210,20 @@ function PopupApp() {
     const elements = [];
     let bullets = [];
     let currentSection = null;
+    // Helper to replace markdown links with a blue icon
+    const replaceLinksWithIcon = (text) => {
+      // Regex for [text](url)
+      return text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, _label, url) => {
+        return `<a href="${url}" class="blue-link-icon" target="_blank" rel="noopener noreferrer" style="text-decoration:none;vertical-align:middle;"><span style="color:#1976d2;font-size:1.1em;">🔗</span></a>`;
+      });
+    };
     const flushBullets = (key) => {
       if (!bullets.length) return;
       if (currentSection === 'Icebreaker Questions') {
         elements.push(
           <ol key={`ol-${key}`} className="icebreaker-list">
             {bullets.map((b, j) => (
-              <li key={j} className="list-item">{b}</li>
+              <li key={j} className="list-item" dangerouslySetInnerHTML={{__html: replaceLinksWithIcon(b)}} />
             ))}
           </ol>
         );
@@ -224,7 +231,7 @@ function PopupApp() {
         elements.push(
           <ul key={`ul-${key}`} className="achievements-list">
             {bullets.map((b, j) => (
-              <li key={j} className="list-item">{b}</li>
+              <li key={j} className="list-item" dangerouslySetInnerHTML={{__html: replaceLinksWithIcon(b)}} />
             ))}
           </ul>
         );
@@ -233,7 +240,7 @@ function PopupApp() {
         elements.push(
           <ul key={`ul-${key}`} className="achievements-list">
             {bullets.map((b, j) => (
-              <li key={j} className="list-item">{b}</li>
+              <li key={j} className="list-item" dangerouslySetInnerHTML={{__html: replaceLinksWithIcon(b)}} />
             ))}
           </ul>
         );
@@ -256,7 +263,7 @@ function PopupApp() {
         // skip empty lines
       } else {
         flushBullets(i);
-        elements.push(<div key={i}>{ln}</div>);
+        elements.push(<div key={i} dangerouslySetInnerHTML={{__html: replaceLinksWithIcon(ln)}} />);
       }
     });
     flushBullets('last');
