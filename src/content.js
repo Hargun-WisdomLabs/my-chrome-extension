@@ -162,3 +162,25 @@ function liTexts(section) {
         .filter(Boolean)
     : [];
 }
+
+(function () {
+  // avoid double-fire when LinkedIn swaps DOM
+  if (window.__summariserPrefetched) return;
+  window.__summariserPrefetched = true;
+
+  // Clear any existing cache for this URL to ensure fresh data
+  const currentUrl = window.location.href.split('?')[0];
+  const cacheKey = 'summary:' + currentUrl;
+  chrome.storage.local.remove(cacheKey);
+
+  // Wait a bit for the page to load, then scrape and prefetch
+  setTimeout(async () => {
+    const profile = await waitAndScrapeProfile();
+    if (profile.success) {
+      chrome.runtime.sendMessage({
+        type: 'PREFETCH_SUMMARY',
+        payload: { profile }
+      });
+    }
+  }, 1000);
+})();

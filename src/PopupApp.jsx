@@ -1,4 +1,5 @@
 import React, { useState, useRef, useLayoutEffect, useEffect } from 'react';
+import './styles.css';
 
 const POPUP_WIDTH      = 620; //   popup width from popup.html
 const INNER_MAX_WIDTH  = 560;
@@ -20,6 +21,7 @@ function PopupApp() {
   const [chatInput, setChatInput] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
   const [useWebSearch, setUseWebSearch] = useState(false);
+  const [summarySource, setSummarySource] = useState(''); // 'cached' or 'fresh'
 
   const rootRef = useRef(null);
   const boxRef  = useRef(null);
@@ -60,34 +62,68 @@ function PopupApp() {
     }
   }, [open, result, chatMessages]);
 
-  /* ───────── auto-scrape on mount ───────── */
+  /* ───────── auto-load cached summary on mount ───────── */
   useEffect(() => {
     setOpen(true);
     setLoading(true);
     setResult('');
     setError('');
-    chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
-      chrome.tabs.sendMessage(tab.id, { action: 'scrapeProfile' }, async (p) => {
-        if (!p?.success) {
-          setLoading(false);
-          setError(p?.error || 'Switch to a LinkedIn profile then try again.');
-          return;
-        }
-        setProfile(p);
-        try {
-          const r = await fetch('http://localhost:3001/summarize', {
-            method : 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body   : JSON.stringify(p),
-          });
-          const d = await r.json();
-          setLoading(false);
-          setResult(format(d.summary || ''));
-        } catch {
-          setLoading(false);
-          setError('Backend unreachable.');
+    
+    chrome.tabs.query({ active: true, currentWindow: true }, async ([tab]) => {
+      const tabUrl = tab.url.split('?')[0]; // unique per profile
+      const cacheKey = 'summary:' + tabUrl;
+      
+      // First, try to get cached summary
+      const cachedData = await chrome.storage.local.get(cacheKey);
+      const cachedSummary = cachedData[cacheKey];
+      
+      if (cachedSummary && Date.now() - cachedSummary.ts < 1000 * 60 * 30) { // 30 min TTL
+        // Use cached summary
+        setResult(format(cachedSummary.li.summary || ''));
+        setLoading(false);
+        setSummarySource('cached');
+        
+        // Still get the profile for chat functionality
+        chrome.tabs.sendMessage(tab.id, { action: 'scrapeProfile' }, (p) => {
+          if (p?.success) {
+            setProfile(p);
+          }
+        });
+        return;
+      }
+      
+      // If no cached summary, show background generation message
+      setResult('Generating summary...');
+      setLoading(false);
+      setSummarySource('generating');
+      
+      // Still get the profile for chat functionality
+      chrome.tabs.sendMessage(tab.id, { action: 'scrapeProfile' }, (p) => {
+        if (p?.success) {
+          setProfile(p);
         }
       });
+      
+      // Check for cached summary every 2 seconds
+      const checkInterval = setInterval(async () => {
+        const cachedData = await chrome.storage.local.get(cacheKey);
+        const cachedSummary = cachedData[cacheKey];
+        
+        if (cachedSummary && Date.now() - cachedSummary.ts < 1000 * 60 * 30) {
+          setResult(format(cachedSummary.li.summary || ''));
+          setSummarySource('cached');
+          clearInterval(checkInterval);
+        }
+      }, 2000);
+      
+      // Stop checking after 30 seconds
+      setTimeout(() => {
+        clearInterval(checkInterval);
+        if (summarySource === 'generating') {
+          setResult('Summary generation is taking longer than expected. Try refreshing.');
+          setSummarySource('');
+        }
+      }, 30000);
     });
   }, []);
 
@@ -124,6 +160,50 @@ function PopupApp() {
     }
   };
 
+  /* ───────── summary functionality ───────── */
+  const fetchSummary = async (p, useWeb = false) => {
+    setError('');
+    setLoading(true);
+
+    // Try to get cached summary first
+    chrome.tabs.query({ active: true, currentWindow: true }, async ([tab]) => {
+      const tabUrl = tab.url.split('?')[0];
+      const cacheKey = 'summary:' + tabUrl;
+      const cachedData = await chrome.storage.local.get(cacheKey);
+      const cachedSummary = cachedData[cacheKey];
+      
+      if (cachedSummary && Date.now() - cachedSummary.ts < 1000 * 60 * 30) {
+        // Use cached summary
+        const summaryData = useWeb ? cachedSummary.web : cachedSummary.li;
+        setResult(format(summaryData.summary || ''));
+        setLoading(false);
+        setSummarySource('cached');
+        return;
+      }
+      
+      // If no cached summary, fetch from backend
+      const endpoint = useWeb
+        ? 'http://localhost:3001/web-summarize'
+        : 'http://localhost:3001/summarize';
+
+      try {
+        const r = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ profile: p })
+        });
+        const { summary, error } = await r.json();
+        setResult(format(summary || ''));
+        if (error) setError(error);
+        setSummarySource('fresh');
+      } catch {
+        setError('Backend unreachable.');
+      } finally {
+        setLoading(false);
+      }
+    });
+  };
+
   /* ───────── render helpers ───────── */
   const render = (txt) => {
     const lines = txt.split('\n');
@@ -134,26 +214,26 @@ function PopupApp() {
       if (!bullets.length) return;
       if (currentSection === 'Icebreaker Questions') {
         elements.push(
-          <ol key={`ol-${key}`} style={{ margin: '0 0 12px 18px', padding: 0 }}>
+          <ol key={`ol-${key}`} className="icebreaker-list">
             {bullets.map((b, j) => (
-              <li key={j} style={{ marginBottom: 2 }}>{b}</li>
+              <li key={j} className="list-item">{b}</li>
             ))}
           </ol>
         );
       } else if (currentSection === 'Achievements/Experience') {
         elements.push(
-          <ul key={`ul-${key}`} style={{ margin: '0 0 12px 18px', padding: 0 }}>
+          <ul key={`ul-${key}`} className="achievements-list">
             {bullets.map((b, j) => (
-              <li key={j} style={{ marginBottom: 2 }}>{b}</li>
+              <li key={j} className="list-item">{b}</li>
             ))}
           </ul>
         );
       } else {
         // fallback
         elements.push(
-          <ul key={`ul-${key}`} style={{ margin: '0 0 12px 18px', padding: 0 }}>
+          <ul key={`ul-${key}`} className="achievements-list">
             {bullets.map((b, j) => (
-              <li key={j} style={{ marginBottom: 2 }}>{b}</li>
+              <li key={j} className="list-item">{b}</li>
             ))}
           </ul>
         );
@@ -166,7 +246,7 @@ function PopupApp() {
         flushBullets(i);
         currentSection = headerMatch[1].trim();
         elements.push(
-          <div key={i} style={{ fontWeight: 700, textAlign: 'left', margin: '14px 0 6px' }}>
+          <div key={i} className="section-header">
             {currentSection}
           </div>
         );
@@ -185,88 +265,35 @@ function PopupApp() {
 
   /* ───────── JSX ───────── */
   return (
-    <div
-      ref={rootRef}
-      style={{
-        position: 'fixed',
-        top: 0,
-        right: 0,
-        height: '95vh',
-        width: POPUP_WIDTH,
-        minWidth: POPUP_WIDTH,
-        maxWidth: POPUP_WIDTH,
-        minHeight: '95vh',
-        maxHeight: '95vh',
-        zIndex: 9999,
-        paddingLeft: 24,
-        paddingRight: 24,
-        paddingTop: 0,
-        paddingBottom: 0,
-        boxSizing: 'border-box',
-        fontFamily: 'Arial, sans-serif',
-        background: '#fff',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        boxShadow: '-4px 0 16px rgba(0,0,0,0.10)',
-        overflowY: 'auto',
-      }}
-    >
+    <div ref={rootRef} className="popup-container">
       {/* summary box */}
-      <div
-        ref={boxRef}
-        style={{
-          marginTop: 0,
-          padding: 24,
-          border: '2px solid #0073b1',
-          borderRadius: 14,
-          background: '#fff',
-          whiteSpace: 'pre-wrap',
-          wordBreak: 'break-word',
-          boxSizing: 'border-box',
-          fontSize: 17,
-          width: '100%',
-        }}
-      >
+      <div ref={boxRef} className="summary-box">
         {loading ? (
-          <div style={{ color: '#0073b1', fontWeight: 700, fontSize: 22, textAlign: 'center' }}>Loading…</div>
+          <div className="loading-text">Loading…</div>
         ) : error ? (
-          <div style={{ color: 'red', textAlign: 'center' }}>{error}</div>
+          <div className="error-text">{error}</div>
         ) : (
           render(result)
         )}
       </div>
 
+      {/* control row */}
+      <div className="control-row">
+        {/* Remove the Refresh LinkedIn Summary button */}
+        <button
+          onClick={() => fetchSummary(profile, true)}
+          disabled={!profile || loading}
+          className="btn"
+        >
+          Web Summary
+        </button>
+      </div>
+
       {/* chat section */}
-      <div style={{
-        width: '100%',
-        maxWidth: POPUP_WIDTH,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-      }}>
-        <form onSubmit={handleChatSubmit} style={{
-          width: '100%',
-          maxWidth: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          marginTop: 8,
-          gap: 0,
-        }}>
-          <div style={{
-            width: '100%',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            marginBottom: 8,
-          }}>
-            <div style={{
-              position: 'relative',
-              flex: 1,
-              display: 'flex',
-              alignItems: 'center',
-            }}>
+      <div className="chat-section">
+        <form onSubmit={handleChatSubmit} className="chat-form">
+          <div className="chat-input-container">
+            <div className="chat-input-wrapper">
               <input
                 ref={chatInputRef}
                 type="text"
@@ -274,18 +301,7 @@ function PopupApp() {
                 onChange={(e) => setChatInput(e.target.value)}
                 placeholder={profile ? `Ask about ${profile.name}...` : 'Profile not loaded yet'}
                 disabled={chatLoading || !profile}
-                style={{
-                  width: '100%',
-                  padding: '12px 48px 12px 16px', // right padding for button
-                  border: '2px solid #0073b1',
-                  borderRadius: '14px',
-                  fontSize: 15,
-                  outline: 'none',
-                  color: chatInput ? '#333' : '#999',
-                  background: !profile ? '#f3f3f3' : '#fff',
-                  boxSizing: 'border-box',
-                  transition: 'border 0.2s',
-                }}
+                className="chat-input"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
@@ -296,24 +312,7 @@ function PopupApp() {
               <button
                 type="submit"
                 disabled={!chatInput.trim() || chatLoading || !profile}
-                style={{
-                  position: 'absolute',
-                  right: 8,
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  width: 36,
-                  height: 36,
-                  borderRadius: '50%',
-                  background: chatInput.trim() && !chatLoading && profile ? '#4338ca' : '#ccc',
-                  border: 'none',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: chatInput.trim() && !chatLoading && profile ? 'pointer' : 'not-allowed',
-                  boxShadow: 'none',
-                  padding: 0,
-                  zIndex: 2,
-                }}
+                className="chat-submit-btn"
                 tabIndex={-1}
               >
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -322,25 +321,13 @@ function PopupApp() {
                 </svg>
               </button>
             </div>
-            <label style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
-              fontSize: 12,
-              color: '#0073b1',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-            }}>
+            <label className="web-search-label">
               <input
                 type="checkbox"
                 checked={useWebSearch}
                 onChange={(e) => setUseWebSearch(e.target.checked)}
                 disabled={chatLoading || !profile}
-                style={{
-                  width: 14,
-                  height: 14,
-                  cursor: 'pointer',
-                }}
+                className="web-search-checkbox"
               />
               Web Search
             </label>
@@ -348,45 +335,20 @@ function PopupApp() {
           {/* Removed the old Ask button */}
         </form>
         {/* Answer or loading below the Ask button */}
-        <div style={{ width: '100%', maxWidth: POPUP_WIDTH, marginTop: 12, boxSizing: 'border-box', alignSelf: 'center' }}>
+        <div className="chat-messages-container">
           {chatLoading && (
-            <div style={{
-              width: '100%',
-              maxWidth: '100%',
-              padding: '16px',
-              border: '2px solid #0073b1',
-              borderRadius: 14,
-              background: '#f3f3f3',
-              color: '#0073b1',
-              fontSize: 16,
-              fontStyle: 'italic',
-              textAlign: 'center',
-              boxSizing: 'border-box',
-            }}>
+            <div className="chat-loading">
               Loading…
             </div>
           )}
           {!chatLoading && chatMessages.length > 0 && (
-            <div style={{
-              width: '100%',
-              maxWidth: '100%',
-              padding: '16px',
-              border: '2px solid #0073b1',
-              borderRadius: 14,
-              background: '#fff',
-              color: '#333',
-              fontSize: 15,
-              marginTop: 0,
-              whiteSpace: 'pre-wrap',
-              wordBreak: 'break-word',
-              boxSizing: 'border-box',
-            }}>
+            <div className="chat-message">
               {chatMessages[chatMessages.length - 1].content}
             </div>
           )}
         </div>
         {!profile && (
-          <div style={{ color: '#999', fontSize: 13, marginTop: 8, textAlign: 'center', width: '100%' }}>
+          <div className="profile-not-loaded">
             Profile not loaded yet. Chat will be enabled once profile data is available.
           </div>
         )}

@@ -44,7 +44,7 @@ Format:
 
   try {
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4.1',
+      model: 'gpt-4o',
       messages: [{ role: 'user', content: prompt }],
       max_tokens: 300
     });
@@ -55,6 +55,45 @@ Format:
     res.status(500).json({ error: 'OpenAI call failed.' });
   }
 });
+// ↓ put this just below the existing /summarize route
+app.post('/web-summarize', async (req, res) => {
+  const { profile } = req.body;          // we still receive the scraped object
+  if (!profile || profile.success === false) {
+    return res.status(400).json({ error: 'Bad profile payload.' });
+  }
+
+  // fallbacks in case something is missing
+  const fullName = profile.name || '';
+  const role     = profile.headline || '';
+  const company  =
+    (profile.experience && profile.experience.length)
+      ? profile.experience[0]               // first item is usually current job
+      : '';
+
+  const inputForSearch = `${fullName} ${company} ${role}`.trim();
+
+  try {
+    // GPT-4o with the web-search tool (same pattern you used in /chat) :contentReference[oaicite:0]{index=0}  
+    const response = await openai.responses.create({
+      model  : 'gpt-4o',
+      tools  : [{ type: 'web_search_preview' }],
+      input  :
+`Search query: ${inputForSearch}
+Do not use the linkedin profile data in your summary try to prioritize the web search results.
+Return exactly:
+- **Icebreaker Questions** (3 bullets)
+- **Achievements/Experience** (5 bullets)
+
+Keep it concise and sales-friendly.`
+    });
+
+    res.json({ summary: response.output_text.trim() });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'OpenAI call failed.' });
+  }
+});
+
 
 app.post('/chat', async (req, res) => {
   const { profile, question, useWebSearch } = req.body;
@@ -69,7 +108,7 @@ ${JSON.stringify(profile, null, 2)}
 
 Question: ${question}
 
-Please answer the question based on the profile data provided. Be conversational and helpful. If the information isn't available in the profile data, say so politely.`;
+Please answer the question based on the profile data provided from the perspective of the linkedin profile. Be conversational and helpful. If the information isn't available in the profile data, say so politely.`;
 
   try {
     let completion;
@@ -77,7 +116,7 @@ Please answer the question based on the profile data provided. Be conversational
     if (useWebSearch) {
       // Use web search functionality
       const response = await openai.responses.create({
-        model: 'gpt-4.1',
+        model: 'gpt-4o',
         tools: [{ type: 'web_search_preview' }],
         input: `Profile Data: ${JSON.stringify(profile, null, 2)}\n\nQuestion: ${question}\n\nPlease answer the question based on the profile data provided. If the information isn't available in the profile data, use web search to find relevant information. Be conversational and helpful.`,
       });
@@ -88,7 +127,7 @@ Please answer the question based on the profile data provided. Be conversational
     } else {
       // Use regular chat completion
       completion = await openai.chat.completions.create({
-        model: 'gpt-4.1',
+        model: 'gpt-4o',
         messages: [{ role: 'user', content: prompt }],
         max_tokens: 500
       });
