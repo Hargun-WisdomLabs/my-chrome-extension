@@ -1,6 +1,6 @@
 {
     "manifest_version": 3,
-    "name": "LinkedIn Profile Summarizer",
+    "name": "LinkedIn Engagement Assistant ",
     "version": "1.0.0",
     "description": "Scrape LinkedIn profiles, summarize key info, and generate ice-breaker questions.",
   
