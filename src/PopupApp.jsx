@@ -142,7 +142,7 @@ function PopupApp() {
     setChatMessages(prev => [...prev, userMessage]);
 
     try {
-      const response = await fetch('http://localhost:3001/chat', {
+      const response = await fetch('https://my-chrome-extension.onrender.com/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ profile, question, useWebSearch }),
@@ -184,8 +184,8 @@ function PopupApp() {
       
       // If no cached summary, fetch from backend
       const endpoint = useWeb
-        ? 'http://localhost:3001/web-summarize'
-        : 'http://localhost:3001/summarize';
+        ? 'https://my-chrome-extension.onrender.com/web-summarize'
+        : 'https://my-chrome-extension.onrender.com/summarize';
 
       try {
         const r = await fetch(endpoint, {

@@ -18,13 +18,13 @@ chrome.runtime.onMessage.addListener(async (msg, _sender, sendResponse) => {
 
   // fire both requests in parallel
   const [li, web] = await Promise.all([
-    fetch('http://localhost:3001/summarize', {
+    fetch('https://my-chrome-extension.onrender.com/summarize', {
       method : 'POST',
       headers: { 'Content-Type': 'application/json' },
       body   : JSON.stringify({ profile })
     }).then(r => r.json()),
 
-    fetch('http://localhost:3001/web-summarize', {
+    fetch('https://my-chrome-extension.onrender.com/web-summarize', {
       method : 'POST',
       headers: { 'Content-Type': 'application/json' },
       body   : JSON.stringify({ profile })

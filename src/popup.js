@@ -8,7 +8,7 @@ root.render(<PopupApp />);
 /**
  * When the user clicks the button:
  *   1. Ask content.js for the scraped profile.
- *   2. POST it to localhost:3001/summarize.
+ *   2. POST it to https://my-chrome-extension.onrender.com/summarize.
  *   3. Show the summary or error.
  */
 document.getElementById('btn').addEventListener('click', () => {
@@ -24,7 +24,7 @@ document.getElementById('btn').addEventListener('click', () => {
 
       out.textContent = 'Summarizing…';
       try {
-        const r = await fetch('http://localhost:3001/summarize', {
+        const r = await fetch('https://my-chrome-extension.onrender.com/summarize', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(profile)

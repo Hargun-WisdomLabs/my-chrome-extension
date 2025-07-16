@@ -23,7 +23,7 @@
   
     "host_permissions": [
       "https://*.linkedin.com/*", // wildcard so it works on any LinkedIn sub-domain
-      "http://localhost:3001/"
+      "https://my-chrome-extension.onrender.com/*"
     ],
   
     "content_scripts": [
