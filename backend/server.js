@@ -28,6 +28,7 @@ ${JSON.stringify(profile, null, 2)}
 Return exactly:
 - 3 bullet icebreaker questions (Bold this as a header, left-aligned)
 - 5 bullet achievements/experience (Bold this as a header, left-aligned)
+- 1 introductory message to the user something that would make them respond maybe have a question or something that would make them respond and where you say hi and give  aproper message but not too long(Bold this as a header, left-aligned)
 
 Format:
 **Icebreaker Questions**
@@ -73,7 +74,6 @@ app.post('/web-summarize', async (req, res) => {
   const inputForSearch = `${fullName} ${company} ${role}`.trim();
 
   try {
-    // GPT-4o with the web-search tool (same pattern you used in /chat) :contentReference[oaicite:0]{index=0}  
     const response = await openai.responses.create({
       model  : 'gpt-4o',
       tools  : [{ type: 'web_search_preview' }],
@@ -108,7 +108,7 @@ ${JSON.stringify(profile, null, 2)}
 
 Question: ${question}
 
-Please answer the question based on the profile data provided from the perspective of the linkedin profile. Be conversational and helpful. If the information isn't available in the profile data, say so politely.`;
+Please answer the question from the peron whose profile it is perspective based on the profile data provided from the perspective of the linkedin profile. Be conversational and helpful. If the information isn't available in the profile data, say so politely.`;
 
   try {
     let completion;

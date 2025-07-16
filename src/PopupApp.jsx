@@ -22,6 +22,7 @@ function PopupApp() {
   const [chatLoading, setChatLoading] = useState(false);
   const [useWebSearch, setUseWebSearch] = useState(false);
   const [summarySource, setSummarySource] = useState(''); // 'cached' or 'fresh'
+  const [copied, setCopied] = useState(false);
 
   const rootRef = useRef(null);
   const boxRef  = useRef(null);
@@ -270,11 +271,31 @@ function PopupApp() {
     return elements;
   };
 
+  // Function to copy summary text
+  const handleCopySummary = () => {
+    // Get the text content of the summary box
+    const el = boxRef.current;
+    if (el) {
+      const text = el.innerText;
+      navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1200);
+    }
+  };
+
   /* ───────── JSX ───────── */
   return (
     <div ref={rootRef} className="popup-container">
       {/* summary box */}
-      <div ref={boxRef} className="summary-box">
+      <div ref={boxRef} className="summary-box" style={{position: 'relative'}}>
+        <button
+          className="copy-summary-btn"
+          style={{position: 'absolute', top: 10, right: 10, zIndex: 2}}
+          onClick={handleCopySummary}
+          title="Copy summary"
+        >
+          {copied ? 'Copied!' : 'Copy'}
+        </button>
         {loading ? (
           <div className="loading-text">Loading…</div>
         ) : error ? (

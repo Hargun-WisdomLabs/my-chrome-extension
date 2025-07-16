@@ -314,3 +314,24 @@
   color: #0d47a1;
   text-decoration: underline;
 } 
+
+.copy-summary-btn {
+  padding: 4px 14px;
+  font-size: 13px;
+  border: 1.5px solid #1976d2;
+  border-radius: 7px;
+  background: #f5faff;
+  color: #1976d2;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border 0.15s;
+  outline: none;
+  box-shadow: 0 1px 4px rgba(25, 118, 210, 0.04);
+}
+.copy-summary-btn:hover {
+  background: #e3f2fd;
+  color: #0d47a1;
+  border-color: #0d47a1;
+}
+.copy-summary-btn:active {
+  background: #bbdefb;
+} 
